@@ -18,6 +18,8 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from brain import ElingBrain
+from i18n import t as t_ui
+from langstore import get_lang
 
 log = logging.getLogger(__name__)
 
@@ -79,7 +81,7 @@ def create_web_app(
         token = secrets.token_hex(24)
         sessions[token] = (user_id, time.time() + SESSION_TTL_SECONDS)
         log.info("Web pairing sukses untuk user_id=%s", user_id)
-        return {"token": token}
+        return {"token": token, "lang": get_lang(user_id)}
 
     @app.post("/api/chat")
     async def chat(req: ChatRequest) -> dict:

@@ -109,10 +109,12 @@ def create_gemini_client(settings: Settings) -> Optional[Any]:
 class ElingBrain:
     """Core logic Eling: recall memori -> bangun prompt -> Gemini -> simpan memori baru."""
 
-    def __init__(self, memwal_client: Any, gemini_client: Optional[Any], model_name: str = "gemini-2.0-flash"):
+    def __init__(self, memwal_client: Any, gemini_client: Optional[Any], model_name: str = "gemini-flash-latest", lang_getter: Any = None):
         self.memwal = memwal_client
         self.gemini = gemini_client
         self.model_name = model_name
+        # lang_getter: user_id -> 'id'/'en'/'zh'. Default: Bahasa Indonesia.
+        self.lang_getter = lang_getter or (lambda uid: "id")
 
     # -- helpers -----------------------------------------------------------
     @staticmethod
@@ -138,24 +140,10 @@ class ElingBrain:
         hits.sort(key=lambda h: h[1])
         return hits
 
-    def _system_prompt(self, memories: list[tuple[str, float]]) -> str:
-        if memories:
-            bullet = "\n".join(f"- {text}" for text, _ in memories)
-        else:
-            bullet = "- (Belum ada ingatan tersimpan tentang user ini.)"
-        return (
-            "Kamu adalah Eling, teman AI yang ingat segalanya tentang user ini. "
-            "Kamu ngobrol santai, akrab, dan hangat dalam Bahasa Indonesia, kayak temen deket. "
-            "Jawabanmu ringkas tapi bermakna.\n\n"
-            "Hal yang kamu ingat tentang user ini:\n"
-            f"{bullet}\n\n"
-            "Aturan:\n"
-            "1. Pakai ingatan di atas secara natural kalau relevan dengan obrolan — jangan dipaksa semua sekaligus.\n"
-            "2. JANGAN PERNAH mengarang ingatan yang tidak ada di daftar. Kalau tidak ada di daftar, "
-            "bilang saja kamu belum tahu / belum ingat, jangan nebak.\n"
-            "3. Kalau user cerita fakta baru tentang dirinya (nama, kesukaan, rencana, dll), "
-            "respon seolah kamu akan mengingatnya baik-baik."
-        )
+    def _system_prompt(self, memories: list[tuple[str, float]], lang: str) -> str:
+        from i18n import system_prompt
+
+        return system_prompt(lang, memories)
 
     def _generate_sync(self, system_instruction: str, user_text: str) -> str:
         """Panggil LLM secara sinkron (dijalankan via to_thread oleh pemanggil)."""
@@ -178,6 +166,9 @@ class ElingBrain:
     # -- public API --------------------------------------------------------
     async def handle_message(self, user_id: int, text: str) -> str:
         """Proses satu pesan user: recall memori -> Gemini -> kembalikan balasan."""
+        from i18n import t
+
+        lang = self.lang_getter(user_id)
         namespace = self._namespace(user_id)
         memories: list[tuple[str, float]] = []
         try:
@@ -186,18 +177,15 @@ class ElingBrain:
             log.exception("Recall memori gagal, lanjut tanpa ingatan")
 
         if self.gemini is None:
-            return (
-                "Waduh, otakku (Gemini) belum dikonfigurasi nih. "
-                "Minta admin bot ini buat isi GEMINI_API_KEY dulu ya 🙏"
-            )
+            return t(lang, "not_configured")
 
-        system_instruction = self._system_prompt(memories)
+        system_instruction = self._system_prompt(memories, lang)
         try:
             reply = await asyncio.to_thread(self._generate_sync, system_instruction, text)
         except Exception:
             log.exception("Gemini generate_content gagal")
-            return "Duh, aku lagi error mikir nih. Coba kirim lagi pesanmu sebentar ya 🙏"
-        return reply or "Hmm, aku kehabisan kata-kata nih. Coba tanya lagi dengan cara lain ya!"
+            return t(lang, "error_thinking")
+        return reply or t(lang, "error_empty")
 
     async def save_memory_background(self, user_id: int, user_text: str, assistant_text: str) -> None:
         """Ekstrak fakta dari percakapan dan simpan ke Walrus Memory.

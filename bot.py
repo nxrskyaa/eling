@@ -7,11 +7,21 @@ import secrets
 import time
 
 from telegram import Update
-from telegram.constants import ChatAction
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.constants import ChatAction, ParseMode
+from telegram.ext import (
+    Application,
+    CallbackQueryHandler,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from brain import ElingBrain, create_gemini_client, create_memwal_client
 from config import load_settings
+from i18n import SUPPORTED_LANGS, t
+from langstore import get_lang, has_lang, set_lang
 
 log = logging.getLogger(__name__)
 
@@ -31,58 +41,88 @@ def _brain(context: ContextTypes.DEFAULT_TYPE) -> ElingBrain:
     return context.bot_data["brain"]
 
 
-async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+def _lang(update: Update) -> str:
+    return get_lang(update.effective_user.id)
+
+
+def _lang_keyboard() -> InlineKeyboardMarkup:
+    buttons = [
+        InlineKeyboardButton(label, callback_data=f"lang:{code}")
+        for code, label in SUPPORTED_LANGS.items()
+    ]
+    return InlineKeyboardMarkup([buttons])
+
+
+async def _send_intro(update: Update, context: ContextTypes.DEFAULT_TYPE, lang: str) -> None:
     name = update.effective_user.first_name or "kamu"
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=t(lang, "start_intro", name=name),
+        parse_mode=ParseMode.MARKDOWN,
+    )
+
+
+async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    if not has_lang(user_id):
+        # User baru: kasih picker bahasa dulu.
+        await update.message.reply_text(
+            t("id", "pick_lang"), reply_markup=_lang_keyboard()
+        )
+        return
+    await _send_intro(update, context, _lang(update))
+
+
+async def on_lang_pick(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Tombol bahasa di-inline keyboard diklik."""
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    code = (query.data or "").split(":", 1)[-1]
+    if not set_lang(user_id, code):
+        return
+    # Hapus pesan picker biar chat rapi, lalu kirim intro bahasa terpilih.
+    try:
+        await query.delete_message()
+    except Exception:
+        pass
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, text=t(code, "lang_set")
+    )
+    await _send_intro(update, context, code)
+
+
+async def cmd_language(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        f"Halo {name}! Aku <b>Eling</b> — teman AI yang ingat segalanya tentang kamu. 🧠\n\n"
-        "Ceritain aja apa pun: kesukaanmu, rencanamu, hal random — aku bakal mengingatnya, "
-        "bahkan kalau kamu chat lagi besok atau dari device lain.\n\n"
-        "<b>Cara pakai:</b>\n"
-        "• Chat aja kayak biasa, aku otomatis mengingat fakta penting.\n"
-        "• /memories — lihat semua yang aku ingat tentang kamu.\n"
-        "• /pair — bikin kode pairing buat hubungin ke web widget.\n"
-        "• /bantuan — lihat daftar perintah.\n\n"
-        "Yuk kenalan! Siapa namamu dan apa yang lagi kamu suka akhir-akhir ini?",
-        parse_mode="HTML",
+        t(_lang(update), "pick_lang"), reply_markup=_lang_keyboard()
     )
 
 
 async def cmd_memories(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    lang = _lang(update)
     brain = _brain(context)
     memories = await brain.list_memories(update.effective_user.id)
     if not memories:
-        await update.message.reply_text(
-            "Aku belum punya ingatan tentang kamu nih. Ceritain sesuatu dulu yuk, "
-            "misalnya makanan favoritmu atau rencanamu minggu ini! 😊"
-        )
+        await update.message.reply_text(t(lang, "memories_empty"))
         return
     lines = [f"{i}. {text}" for i, text in enumerate(memories, start=1)]
-    await update.message.reply_text(
-        "Ini semua yang aku ingat tentang kamu:\n\n" + "\n".join(lines)
-    )
+    await update.message.reply_text(t(lang, "memories_title") + "\n\n" + "\n".join(lines))
 
 
 async def cmd_pair(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    lang = _lang(update)
     _prune_pair_codes()
     code = f"{secrets.randbelow(900_000) + 100_000:06d}"
     PAIR_CODES[code] = (update.effective_user.id, time.time() + PAIR_TTL_SECONDS)
     await update.message.reply_text(
-        f"Kode pairing kamu: <b>{code}</b>\n\n"
-        "Masukkan kode ini di web widget Eling (segera hadir) untuk menghubungkan "
-        "sesi web dengan akun Telegram-mu. Kode berlaku 10 menit.",
-        parse_mode="HTML",
+        t(lang, "pair_msg", code=code),
+        parse_mode=ParseMode.MARKDOWN,
     )
 
 
 async def cmd_bantuan(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "<b>Perintah Eling:</b>\n"
-        "/start — kenalan & mulai ngobrol\n"
-        "/memories — lihat semua ingatanku tentang kamu\n"
-        "/pair — bikin kode pairing buat web widget\n"
-        "/bantuan — pesan ini\n\n"
-        "Selain itu, chat aja bebas — aku otomatis mengingat hal-hal penting! 🧠",
-        parse_mode="HTML",
+        t(_lang(update), "help_text"), parse_mode=ParseMode.MARKDOWN
     )
 
 
@@ -121,6 +161,7 @@ async def amain(settings) -> None:
         memwal_client=create_memwal_client(settings),
         gemini_client=create_gemini_client(settings),
         model_name=settings.gemini_model,
+        lang_getter=get_lang,
     )
 
     # Timeout longgar: request pertama lewat egress proxy bisa ~11 detik
@@ -134,6 +175,8 @@ async def amain(settings) -> None:
     app.bot_data["brain"] = brain
 
     app.add_handler(CommandHandler("start", cmd_start))
+    app.add_handler(CallbackQueryHandler(on_lang_pick, pattern=r"^lang:(id|en|zh)$"))
+    app.add_handler(CommandHandler(["language", "bahasa"], cmd_language))
     app.add_handler(CommandHandler("memories", cmd_memories))
     app.add_handler(CommandHandler("pair", cmd_pair))
     app.add_handler(CommandHandler(["bantuan", "help"], cmd_bantuan))

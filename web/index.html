@@ -63,6 +63,26 @@
 let token = null;
 const $ = id => document.getElementById(id);
 
+// Chrome UI strings per bahasa (bot replies ikut bahasa pilihan user otomatis).
+const UI = {
+  id: { pairTitle: 'Hubungkan ke Telegram', pairHint: 'Jalankan perintah /pair di chat Telegram Eling, lalu masukkan kode 6 digitnya di sini. Setelah itu, semua yang kamu omongin di sini diingat juga di Telegram — dan sebaliknya.', pairBtn: 'Hubungkan', chatPlaceholder: 'Tulis pesan...', sendBtn: 'Kirim', memBtn: '🧠 Lihat ingatanku', memTitle: 'Yang Eling ingat tentang kamu:', memEmpty: 'Belum ada ingatan.', welcome: 'Halo! Aku Eling — dan aku ingat semua yang pernah kamu ceritain di Telegram juga. Coba tanya sesuatu yang cuma aku bisa tahu kalau aku beneran ingat. 😉', sub: 'web widget — satu ingatan dengan Telegram-mu' },
+  en: { pairTitle: 'Connect to Telegram', pairHint: 'Run the /pair command in your Eling Telegram chat, then enter the 6-digit code here. After that, everything you say here is also remembered on Telegram — and vice versa.', pairBtn: 'Connect', chatPlaceholder: 'Type a message...', sendBtn: 'Send', memBtn: '🧠 See my memories', memTitle: "What Eling remembers about you:", memEmpty: 'No memories yet.', welcome: "Hi! I'm Eling — and I remember everything you ever told me on Telegram too. Try asking something only I'd know if I really remembered. 😉", sub: 'web widget — one memory with your Telegram' },
+  zh: { pairTitle: '连接到 Telegram', pairHint: '在 Eling Telegram 聊天中运行 /pair 命令，然后在此输入 6 位数字码。之后，你在这里说的每一句话在 Telegram 上也会被记住——反之亦然。', pairBtn: '连接', chatPlaceholder: '输入消息...', sendBtn: '发送', memBtn: '🧠 查看我的记忆', memTitle: 'Eling 记得的关于你的事：', memEmpty: '还没有记忆。', welcome: '你好！我是 Eling——我在 Telegram 上你告诉我的每一件事也都记得。试着问一些只有真正记得才会知道的事情吧。😉', sub: '网页小部件 —— 与你的 Telegram 共享同一个记忆' },
+};
+let ui = UI.id;
+function applyLang(lang) {
+  ui = UI[lang] || UI.id;
+  document.documentElement.lang = lang === 'zh' ? 'zh-CN' : lang;
+  document.querySelector('#pair-screen h2').textContent = ui.pairTitle;
+  document.querySelector('#pair-screen .hint').innerHTML = ui.pairHint.replace('/pair', '<b>/pair</b>');
+  $('pair-btn').textContent = ui.pairBtn;
+  $('input').placeholder = ui.chatPlaceholder;
+  $('send-btn').textContent = ui.sendBtn;
+  $('mem-btn').textContent = ui.memBtn;
+  document.querySelector('header p').textContent = ui.sub;
+  document.querySelector('#mem-panel b').textContent = ui.memTitle;
+}
+
 async function api(path, body) {
   const r = await fetch(path, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
   const data = await r.json().catch(() => ({}));
@@ -84,9 +104,10 @@ $('pair-btn').onclick = async () => {
   try {
     const data = await api('/api/pair', { code });
     token = data.token;
+    applyLang(data.lang || 'id');
     $('pair-screen').style.display = 'none';
     $('chat-screen').style.display = 'flex';
-    addMsg('Halo! Aku Eling — dan aku ingat semua yang pernah kamu ceritain di Telegram juga. Coba tanya sesuatu yang cuma aku bisa tahu kalau aku beneran ingat. 😉', 'bot');
+    addMsg(ui.welcome, 'bot');
   } catch (e) { $('pair-error').textContent = e.message; }
   $('pair-btn').disabled = false;
 };
@@ -113,7 +134,7 @@ $('mem-btn').onclick = async () => {
     const r = await fetch('/api/memories?token=' + encodeURIComponent(token));
     const data = await r.json();
     $('mem-list').innerHTML = '';
-    (data.memories.length ? data.memories : ['Belum ada ingatan.']).forEach(m => {
+    (data.memories.length ? data.memories : [ui.memEmpty]).forEach(m => {
       const li = document.createElement('li'); li.textContent = m; $('mem-list').appendChild(li);
     });
     panel.style.display = 'block';
