@@ -7,13 +7,35 @@ from dataclasses import dataclass
 from dotenv import load_dotenv
 
 
+def _sanitize_proxy_env() -> None:
+    """Bersihkan entri IPv6 dari no_proxy/NO_PROXY.
+
+    Quirk VM ini: httpx (dipakai python-telegram-bot & memwal) crash dengan
+    `InvalidURL: Invalid port` saat parsing entri seperti `::1` / `[::1]`
+    di no_proxy. Buang entri ber-tanda `[` / `::`, pertahankan hostname biasa.
+    """
+    for var in ("no_proxy", "NO_PROXY"):
+        val = os.environ.get(var)
+        if not val:
+            continue
+        keep = [
+            p.strip()
+            for p in val.split(",")
+            if p.strip() and "[" not in p and "::" not in p
+        ]
+        os.environ[var] = ",".join(keep)
+
+
+_sanitize_proxy_env()
+
+
 @dataclass
 class Settings:
     """Semua konfigurasi yang dibutuhkan bot."""
 
     telegram_token: str
     gemini_api_key: str
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-flash-latest"
     memwal_private_key: str = ""
     memwal_account_id: str = ""
     memwal_server_url: str = "https://relayer.memory.walrus.xyz"
@@ -45,7 +67,7 @@ def load_settings() -> Settings:
     return Settings(
         telegram_token=os.environ["TELEGRAM_TOKEN"].strip(),
         gemini_api_key=os.environ["GEMINI_API_KEY"].strip(),
-        gemini_model=os.environ.get("GEMINI_MODEL", "gemini-2.0-flash").strip(),
+        gemini_model=os.environ.get("GEMINI_MODEL", "gemini-flash-latest").strip(),
         memwal_private_key=os.environ.get("MEMWAL_PRIVATE_KEY", "").strip(),
         memwal_account_id=os.environ.get("MEMWAL_ACCOUNT_ID", "").strip(),
         memwal_server_url=os.environ.get(

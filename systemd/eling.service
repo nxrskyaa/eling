@@ -5,12 +5,15 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=hatch
-Group=hatch
+User=root
+Group=root
 WorkingDirectory=/home/hatch/workspace/walrus-hackathon/eling
 Environment=HOME=/home/hatch
 Environment=PATH=/home/hatch/workspace/walrus-hackathon/eling/.venv/bin:/usr/local/bin:/usr/bin:/bin
 EnvironmentFile=/home/hatch/workspace/walrus-hackathon/eling/.env
+# Egress proxy vars (VM ini wajib lewat hatch-egress-proxy; tanpa ini
+# koneksi TLS langsung gagal). File 600, root-only, gitignored.
+EnvironmentFile=/home/hatch/workspace/walrus-hackathon/eling/.proxy-env
 ExecStart=/home/hatch/workspace/walrus-hackathon/eling/.venv/bin/python /home/hatch/workspace/walrus-hackathon/eling/bot.py
 Restart=always
 RestartSec=5

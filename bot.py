@@ -103,6 +103,8 @@ def main() -> None:
     logging.basicConfig(
         format="%(asctime)s %(name)s %(levelname)s: %(message)s", level=logging.INFO
     )
+    # Jangan log URL HTTP: token bot Telegram ada di path URL Bot API.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     try:
         settings = load_settings()
     except RuntimeError as exc:
@@ -121,7 +123,14 @@ async def amain(settings) -> None:
         model_name=settings.gemini_model,
     )
 
-    app = Application.builder().token(settings.telegram_token).build()
+    # Timeout longgar: request pertama lewat egress proxy bisa ~11 detik
+    # (cold TLS), request berikutnya <1 detik.
+    from telegram.request import HTTPXRequest
+
+    tg_request = HTTPXRequest(
+        connect_timeout=30.0, read_timeout=30.0, write_timeout=30.0, pool_timeout=10.0
+    )
+    app = Application.builder().token(settings.telegram_token).request(tg_request).build()
     app.bot_data["brain"] = brain
 
     app.add_handler(CommandHandler("start", cmd_start))
