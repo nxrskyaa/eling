@@ -5,3 +5,4 @@ __pycache__/
 .pytest_cache/
 .proxy-env
 data/
+node_modules/

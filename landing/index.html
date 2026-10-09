@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eling — Bot yang tidak pernah lupa</title>
+<meta name="description" content="Eling adalah teman AI di Telegram yang mengingat segalanya tentangmu — lintas sesi, lintas device. Ditenagai Walrus Memory.">
+<link rel="icon" href="assets/eling-avatar.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="nav">
+  <a class="brand" href="#top">
+    <img src="assets/eling-avatar.webp" alt="Eling" class="brand-avatar">
+    <span>Eling</span>
+  </a>
+  <div class="nav-links">
+    <a href="#demo" data-i18n="nav_demo">Demo</a>
+    <a href="#cara-kerja" data-i18n="nav_how">Cara kerja</a>
+  </div>
+  <div class="nav-right">
+    <div class="lang-pills" role="group" aria-label="Language">
+      <button class="lang-pill active" data-lang="id">ID</button>
+      <button class="lang-pill" data-lang="en">EN</button>
+      <button class="lang-pill" data-lang="zh">中文</button>
+    </div>
+    <a class="brick-btn small orange" href="https://t.me/ElingWalz_bot" target="_blank" rel="noopener">
+      <span data-i18n="nav_cta">Chat di Telegram</span>
+    </a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="eyebrow reveal"><span class="brick-dot"></span><span data-i18n="hero_eyebrow">Walrus Session 8 · Chatbots That Remember</span></div>
+      <h1 class="reveal" data-i18n-html="hero_h1">Bot yang <mark>tidak pernah lupa</mark>.</h1>
+      <p class="lede reveal" data-i18n="hero_sub">Eling adalah teman AI di Telegram yang mengingat segalanya tentangmu — lintas sesi, lintas device. Otaknya Gemini, ingatannya Walrus Memory.</p>
+      <div class="hero-ctas reveal">
+        <a class="brick-btn orange" href="https://t.me/ElingWalz_bot" target="_blank" rel="noopener"><span>💬</span><span data-i18n="hero_cta1">Chat di Telegram</span></a>
+        <a class="brick-btn white" href="#demo"><span>🧠</span><span data-i18n="hero_cta2">Lihat demo</span></a>
+      </div>
+      <p class="hero-note reveal" data-i18n="hero_note">Gratis · Langsung jalan · 3 bahasa 🇮🇩🇬🇧🇨🇳</p>
+    </div>
+    <div class="hero-art reveal">
+      <div class="avatar-frame">
+        <img src="assets/eling-avatar.webp" alt="Eling — robot Lego yang tidak pernah lupa">
+      </div>
+      <div class="float-chip chip-1">🥜 <span data-i18n="chip1">alergi kacang</span></div>
+      <div class="float-chip chip-2">📅 <span data-i18n="chip2">deadline 9 Okt</span></div>
+      <div class="float-chip chip-3">☕ <span data-i18n="chip3">suka kopi tubruk</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>INGAT · REMEMBER · 记住 · INGAT · REMEMBER · 记住 · INGAT · REMEMBER · 记住 ·&nbsp;</span>
+    <span>INGAT · REMEMBER · 记住 · INGAT · REMEMBER · 记住 · INGAT · REMEMBER · 记住 ·&nbsp;</span>
+  </div>
+</div>
+
+<section class="section demo" id="demo">
+  <h2 class="section-title reveal" data-i18n="demo_title">Coba bedakan.</h2>
+  <p class="section-sub reveal" data-i18n="demo_sub">Percakapan yang sama, dua hasil berbeda.</p>
+  <div class="demo-toggle reveal" role="group">
+    <button class="brick-btn small white toggle-btn" data-mode="without"><span>😶</span><span data-i18n="demo_without">Tanpa ingatan</span></button>
+    <button class="brick-btn small orange toggle-btn active" data-mode="with"><span>🧠</span><span data-i18n="demo_with">Dengan Eling</span></button>
+  </div>
+  <div class="chat-card reveal">
+    <div class="chat-header">
+      <img src="assets/eling-avatar.webp" alt="">
+      <div><b>Eling</b><span class="online"><i></i><span data-i18n="demo_online">online · ingat segalanya</span></span></div>
+    </div>
+    <div class="chat-day" data-i18n="demo_day1">Hari 1</div>
+    <div id="chat-messages"></div>
+  </div>
+</section>
+
+<div class="studs" aria-hidden="true"></div>
+
+<section class="section steps" id="cara-kerja">
+  <h2 class="section-title reveal" data-i18n="steps_title">Cara merakit ingatan</h2>
+  <p class="section-sub reveal" data-i18n="steps_sub">Empat langkah, kayak buku instruksi.</p>
+  <ol class="steps-list" id="steps-list"></ol>
+</section>
+
+<section class="section wall">
+  <h2 class="section-title reveal" data-i18n="wall_title">Dinding ingatan</h2>
+  <p class="section-sub reveal" data-i18n="wall_sub">Setiap fakta jadi satu brick. Makin sering cerita, makin tinggi temboknya.</p>
+  <div class="brick-wall" id="brick-wall"></div>
+  <div class="wall-cta reveal">
+    <a class="brick-btn orange" href="https://t.me/ElingWalz_bot" target="_blank" rel="noopener"><span>🧱</span><span data-i18n="wall_cta">Mulai bangun dindingmu</span></a>
+  </div>
+</section>
+
+<div class="studs" aria-hidden="true"></div>
+
+<section class="section hack">
+  <h2 class="section-title reveal" data-i18n="hack_title">Dibuat untuk hackathon</h2>
+  <div class="spec-plate reveal">
+    <div class="spec-row"><span data-i18n="hack_event">Acara</span><b>Walrus Session 8: Chatbots That Remember</b></div>
+    <div class="spec-row"><span data-i18n="hack_prize">Total hadiah</span><b>$2.500</b></div>
+    <div class="spec-row"><span data-i18n="hack_stack">Teknologi</span><b>Walrus Memory · Sui · Gemini · Telegram</b></div>
+    <div class="spec-row"><span data-i18n="hack_lang">Bahasa</span><b>🇮🇩 🇬🇧 🇨🇳</b></div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="assets/eling-avatar.webp" alt="">
+      <b>Eling 🧱</b>
+      <span data-i18n="footer_tag">bot yang tidak pernah lupa.</span>
+    </div>
+    <div class="footer-links">
+      <a href="https://t.me/ElingWalz_bot" target="_blank" rel="noopener">Telegram</a>
+      <a href="https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608c849" target="_blank" rel="noopener">DeepSurge</a>
+    </div>
+  </div>
+  <p class="footer-copy">© 2026 Eling · Walrus Session 8</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
