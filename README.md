@@ -25,7 +25,7 @@ Built for **Walrus Session 8: Chatbots That Remember**.
 &nbsp;·&nbsp;
 🌐 <b>Landing page:</b> <a href="https://eling-landing-nxrskyaas-projects.vercel.app/">eling-landing-nxrskyaas-projects.vercel.app</a>
 &nbsp;·&nbsp;
-🎬 <b>Demo video:</b> <a href="eling-video/out/eling-demo-portrait.mp4">eling-demo-portrait.mp4</a> (45s, portrait)
+🎬 <b>Demo video:</b> <a href="eling-video/out/eling-demo-en.mp4">eling-demo-en.mp4</a> (45s, portrait, English)
 </p>
 
 ## The money moment
