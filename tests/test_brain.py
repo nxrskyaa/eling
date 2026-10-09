@@ -127,3 +127,45 @@ def test_namespaces_are_isolated_per_user():
 
     memories = asyncio.run(scenario())
     assert memories == []
+
+
+class _FlakyGemini:
+    """Gagal di model pertama (503), sukses di model kedua."""
+
+    def __init__(self):
+        self.calls = []
+
+    class _Models:
+        def __init__(self, outer):
+            self.outer = outer
+
+        def generate_content(self, model, contents, config=None):
+            self.outer.calls.append(model)
+            if model == "model-utama":
+                raise RuntimeError("503 UNAVAILABLE")
+            return type("R", (), {"text": "ok dari cadangan"})()
+
+    @property
+    def models(self):
+        return self._Models(self)
+
+
+def test_generate_fallback_chain():
+    import asyncio
+    import sys
+
+    sys.path.insert(0, "/home/hatch/workspace/walrus-hackathon/eling")
+    from brain import ElingBrain
+    from memwal import MemWalMock
+
+    async def go():
+        brain = ElingBrain(
+            memwal_client=MemWalMock.create(namespace="t"),
+            gemini_client=_FlakyGemini(),
+            model_name="model-utama",
+            model_names=["model-cadangan"],
+        )
+        return await brain.handle_message(1, "halo")
+
+    reply = asyncio.run(go())
+    assert reply == "ok dari cadangan"

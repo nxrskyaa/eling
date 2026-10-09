@@ -36,6 +36,8 @@ class Settings:
     telegram_token: str
     gemini_api_key: str
     gemini_model: str = "gemini-flash-latest"
+    # Model cadangan kalau model utama 503/429/404 (dipakai berurutan).
+    gemini_fallback_models: str = "gemini-3.5-flash,gemini-3.5-flash-lite,gemini-flash-lite-latest"
     memwal_private_key: str = ""
     memwal_account_id: str = ""
     memwal_server_url: str = "https://relayer.memory.walrus.xyz"
@@ -68,6 +70,10 @@ def load_settings() -> Settings:
         telegram_token=os.environ["TELEGRAM_TOKEN"].strip(),
         gemini_api_key=os.environ["GEMINI_API_KEY"].strip(),
         gemini_model=os.environ.get("GEMINI_MODEL", "gemini-flash-latest").strip(),
+        gemini_fallback_models=os.environ.get(
+            "GEMINI_FALLBACK_MODELS",
+            "gemini-3.5-flash,gemini-3.5-flash-lite,gemini-flash-lite-latest",
+        ).strip(),
         memwal_private_key=os.environ.get("MEMWAL_PRIVATE_KEY", "").strip(),
         memwal_account_id=os.environ.get("MEMWAL_ACCOUNT_ID", "").strip(),
         memwal_server_url=os.environ.get(

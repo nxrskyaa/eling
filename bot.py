@@ -157,11 +157,17 @@ def main() -> None:
 async def amain(settings) -> None:
     """Jalankan bot Telegram (polling) + web widget dalam SATU event loop,
     supaya PAIR_CODES dan brain dipakai bersama tanpa masalah thread."""
+    fallbacks = [
+        m.strip()
+        for m in settings.gemini_fallback_models.split(",")
+        if m.strip()
+    ]
     brain = ElingBrain(
         memwal_client=create_memwal_client(settings),
         gemini_client=create_gemini_client(settings),
         model_name=settings.gemini_model,
         lang_getter=get_lang,
+        model_names=fallbacks,
     )
 
     # Timeout longgar: request pertama lewat egress proxy bisa ~11 detik

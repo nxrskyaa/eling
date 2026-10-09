@@ -109,10 +109,14 @@ def create_gemini_client(settings: Settings) -> Optional[Any]:
 class ElingBrain:
     """Core logic Eling: recall memori -> bangun prompt -> Gemini -> simpan memori baru."""
 
-    def __init__(self, memwal_client: Any, gemini_client: Optional[Any], model_name: str = "gemini-flash-latest", lang_getter: Any = None):
+    def __init__(self, memwal_client: Any, gemini_client: Optional[Any], model_name: str = "gemini-flash-latest", lang_getter: Any = None, model_names: Optional[list[str]] = None):
         self.memwal = memwal_client
         self.gemini = gemini_client
         self.model_name = model_name
+        # Rantai model: utama dulu, lalu cadangan kalau 503/429/404.
+        names = [model_name] + list(model_names or [])
+        seen: set[str] = set()
+        self.model_names = [m for m in names if m and not (m in seen or seen.add(m))]
         # lang_getter: user_id -> 'id'/'en'/'zh'. Default: Bahasa Indonesia.
         self.lang_getter = lang_getter or (lambda uid: "id")
 
@@ -145,8 +149,17 @@ class ElingBrain:
 
         return system_prompt(lang, memories)
 
-    def _generate_sync(self, system_instruction: str, user_text: str) -> str:
-        """Panggil LLM secara sinkron (dijalankan via to_thread oleh pemanggil)."""
+    @staticmethod
+    def _model_error_retryable(exc: Exception) -> bool:
+        """503/429/500 -> coba model cadangan. 404 (model pensiun) -> juga lanjut.
+        Error lain (mis. 400 bad request, auth) -> jangan buang waktu, raise."""
+        code = getattr(exc, "code", None)
+        if code in (404, 429, 500, 502, 503):
+            return True
+        msg = str(exc)
+        return any(s in msg for s in ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED", "404", "NOT_FOUND"))
+
+    def _try_one_model(self, model: str, system_instruction: str, user_text: str) -> str:
         client = self.gemini
         models = getattr(client, "models", None)
         if models is not None:
@@ -154,7 +167,7 @@ class ElingBrain:
             from google.genai import types
 
             resp = models.generate_content(
-                model=self.model_name,
+                model=model,
                 contents=user_text,
                 config=types.GenerateContentConfig(system_instruction=system_instruction),
             )
@@ -162,6 +175,32 @@ class ElingBrain:
         # Interface sederhana (dipakai test stub / client kustom):
         # client.generate_content(full_prompt) -> str
         return str(client.generate_content(f"{system_instruction}\n\nUser: {user_text}")).strip()
+
+    def _generate_sync(self, system_instruction: str, user_text: str) -> str:
+        """Panggil LLM secara sinkron (dijalankan via to_thread oleh pemanggil).
+
+        Coba model utama dulu; kalau kena 503/429/404, otomatis fallback ke
+        model cadangan. Raise hanya kalau semua model gagal."""
+        last_exc: Optional[Exception] = None
+        for model in self.model_names:
+            try:
+                text = self._try_one_model(model, system_instruction, user_text)
+                if text:
+                    if model != self.model_names[0]:
+                        log.warning("Fallback model dipakai: %s", model)
+                    return text
+                last_exc = ValueError(f"Model {model} mengembalikan teks kosong")
+            except Exception as exc:  # noqa: BLE001
+                last_exc = exc
+                if self._model_error_retryable(exc):
+                    log.warning(
+                        "Model %s gagal (%s), coba cadangan berikutnya",
+                        model, type(exc).__name__,
+                    )
+                    continue
+                raise
+        assert last_exc is not None
+        raise last_exc
 
     # -- public API --------------------------------------------------------
     async def handle_message(self, user_id: int, text: str) -> str:
