@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT">
 </p>
 
-**Eling** (*ingat* = "remember" in Indonesian) is a Telegram AI companion with real long-term memory.
+**Eling** (*ingat* = "remember" in Javanese) is a Telegram AI companion with real long-term memory.
 Tell it anything — your peanut allergy, your cat's name, your deadlines — and it remembers
 **across sessions and across devices**, because every memory lives in decentralized
 [Walrus Memory](https://docs.walrus.site/), not on the bot's server.

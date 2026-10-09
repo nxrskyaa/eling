@@ -11,11 +11,12 @@ Kebanyakan chatbot menderita amnesia total. Tutup chat, buka lagi besok — dia
 tidak tahu namamu, tidak ingat alergimu, tidak tahu deadline-mu. Setiap sesi
 mulai dari nol.
 
-Eling ("ingat" dalam bahasa Jawa) adalah teman AI berbahasa Indonesia yang
-dibangun untuk satu hal: **tidak lupa**. Ceritakan alergi kacangmu hari ini,
-tanya minggu depan "makanan apa yang aman buat gue?" — dia menjawab dari
-ingatan, bukan dari tebakan. Dan ingatan itu ikut ke mana pun kamu chat:
-mulai di Telegram, lanjut di web widget, Eling tetap orang (bot?) yang sama.
+Eling ("ingat" dalam bahasa Jawa) adalah teman AI yang dibangun untuk satu hal:
+**tidak lupa**. Tersedia dalam tiga bahasa (🇮🇩 Indonesia, 🇬🇧 English, 🇨🇳 中文) —
+pilih saat `/start`. Ceritakan alergi kacangmu hari ini, tanya minggu depan
+"makanan apa yang aman buat gue?" — dia menjawab dari ingatan, bukan dari
+tebakan. Dan ingatan itu ikut ke mana pun kamu chat: mulai di Telegram, lanjut
+di web widget, Eling tetap orang (bot?) yang sama.
 
 Dibangun untuk Walrus Session 8: Chatbots That Remember, dengan Walrus Memory
 sebagai lapisan memorinya dan Gemini sebagai otaknya.
@@ -40,6 +41,11 @@ Setiap pesan masuk melewati tiga langkah:
 Web widget memakai kode pairing 6 digit dari perintah `/pair` di Telegram,
 lalu sesi web dipetakan ke namespace yang sama. Itulah momen lintas-device:
 memori yang ditulis di HP bisa dibaca di browser.
+
+Satu detail produksi: model utama Gemini sempat 503 overload saat demo, jadi
+otaknya sekarang punya **fallback chain otomatis** — kalau model utama gagal,
+langsung coba `gemini-3.5-flash → gemini-3.5-flash-lite → gemini-flash-lite-latest`
+tanpa user sadar.
 
 ## Before / after
 
@@ -66,13 +72,17 @@ ditanyakan lewat web widget, dijawab benar.]
 
 ## Coba sendiri
 
-Repo publik + setup instructions: [LINK REPO]
-Jalankan: `pip install -r requirements.txt`, isi `.env`, `python bot.py`.
+- 💬 Bot: [@ElingWalz_bot](https://t.me/ElingWalz_bot) (Telegram)
+- 🌐 Landing: [eling-landing-nxrskyaas-projects.vercel.app](https://eling-landing-nxrskyaas-projects.vercel.app/)
+- 🎬 Demo video (45 dtk): [eling-demo-portrait.mp4](https://github.com/nxrskyaa/eling/blob/main/eling-video/out/eling-demo-portrait.mp4)
+- 💻 Repo + setup: [github.com/nxrskyaa/eling](https://github.com/nxrskyaa/eling)
+
+Jalankan sendiri: `pip install -r requirements.txt`, isi `.env`, `python bot.py`.
 Butuh: token bot Telegram (@BotFather), Gemini API key gratis
 (aistudio.google.com), dan delegate key + account ID dari
 memory.walrus.xyz.
 
 ---
 
-*Checklist sebelum publish: isi [EVIDENCE], tambah link repo, ~600 kata,
+*Checklist sebelum publish: isi [EVIDENCE] (butuh 3 user × 10 memori — testing), ~600 kata,
 share di X tag @WalrusProtocol dengan #WalrusMemory.*
