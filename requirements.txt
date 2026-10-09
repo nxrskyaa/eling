@@ -1,0 +1,7 @@
+python-telegram-bot[job-queue]>=21.0
+memwal
+google-genai
+python-dotenv
+fastapi
+uvicorn
+pytest

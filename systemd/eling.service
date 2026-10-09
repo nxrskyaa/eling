@@ -1,0 +1,21 @@
+[Unit]
+Description=Eling - Telegram chatbot with Walrus Memory (Walrus Session 8 hackathon)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hatch
+Group=hatch
+WorkingDirectory=/home/hatch/workspace/walrus-hackathon/eling
+Environment=HOME=/home/hatch
+Environment=PATH=/home/hatch/workspace/walrus-hackathon/eling/.venv/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=/home/hatch/workspace/walrus-hackathon/eling/.env
+ExecStart=/home/hatch/workspace/walrus-hackathon/eling/.venv/bin/python /home/hatch/workspace/walrus-hackathon/eling/bot.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

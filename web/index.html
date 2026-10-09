@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eling — Web Widget</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; display: flex; flex-direction: column; height: 100dvh; }
+  header { padding: 14px 16px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; }
+  header h1 { font-size: 18px; margin: 0; }
+  header p { font-size: 12px; color: #94a3b8; margin: 0; }
+  #pair-screen, #chat-screen { flex: 1; display: flex; flex-direction: column; padding: 16px; max-width: 640px; width: 100%; margin: 0 auto; }
+  #chat-screen { display: none; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-top: 24px; }
+  input[type=text] { width: 100%; padding: 12px; font-size: 18px; text-align: center; letter-spacing: 6px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #fff; margin: 12px 0; }
+  button { padding: 12px 20px; border: none; border-radius: 8px; background: #6366f1; color: #fff; font-size: 15px; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  .hint { font-size: 13px; color: #94a3b8; line-height: 1.6; }
+  .error { color: #fca5a5; font-size: 13px; min-height: 20px; }
+  #messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 0 12px; }
+  .msg { max-width: 85%; padding: 10px 14px; border-radius: 14px; line-height: 1.5; font-size: 15px; white-space: pre-wrap; }
+  .msg.user { align-self: flex-end; background: #6366f1; color: #fff; border-bottom-right-radius: 4px; }
+  .msg.bot { align-self: flex-start; background: #1e293b; border: 1px solid #334155; border-bottom-left-radius: 4px; }
+  .msg.typing { color: #94a3b8; font-style: italic; }
+  #composer { display: flex; gap: 8px; padding-top: 8px; }
+  #composer input { flex: 1; padding: 12px; font-size: 15px; border-radius: 10px; border: 1px solid #475569; background: #1e293b; color: #fff; }
+  #toolbar { display: flex; gap: 8px; margin-bottom: 8px; }
+  #toolbar button { background: #334155; font-size: 13px; padding: 8px 12px; }
+  #mem-panel { display: none; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; max-height: 40%; overflow-y: auto; font-size: 14px; }
+  #mem-panel ol { margin: 8px 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <div style="font-size:24px">🧠</div>
+  <div><h1>Eling</h1><p>web widget — satu ingatan dengan Telegram-mu</p></div>
+</header>
+
+<div id="pair-screen">
+  <div class="card">
+    <h2 style="margin-top:0">Hubungkan ke Telegram</h2>
+    <p class="hint">Jalankan perintah <b>/pair</b> di chat Telegram Eling, lalu masukkan kode 6 digitnya di sini. Setelah itu, semua yang kamu omongin di sini diingat juga di Telegram — dan sebaliknya.</p>
+    <input type="text" id="code" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="off">
+    <div class="error" id="pair-error"></div>
+    <button id="pair-btn" style="width:100%">Hubungkan</button>
+  </div>
+</div>
+
+<div id="chat-screen">
+  <div id="toolbar">
+    <button id="mem-btn">🧠 Lihat ingatanku</button>
+  </div>
+  <div id="mem-panel"><b>Yang Eling ingat tentang kamu:</b><ol id="mem-list"></ol></div>
+  <div id="messages"></div>
+  <div id="composer">
+    <input type="text" id="input" placeholder="Tulis pesan..." autocomplete="off">
+    <button id="send-btn">Kirim</button>
+  </div>
+</div>
+
+<script>
+let token = null;
+const $ = id => document.getElementById(id);
+
+async function api(path, body) {
+  const r = await fetch(path, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.detail || 'Error ' + r.status);
+  return data;
+}
+function addMsg(text, cls) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + cls; d.textContent = text;
+  $('messages').appendChild(d);
+  $('messages').scrollTop = $('messages').scrollHeight;
+  return d;
+}
+$('pair-btn').onclick = async () => {
+  const code = $('code').value.trim();
+  $('pair-error').textContent = '';
+  if (code.length !== 6) { $('pair-error').textContent = 'Kode harus 6 digit.'; return; }
+  $('pair-btn').disabled = true;
+  try {
+    const data = await api('/api/pair', { code });
+    token = data.token;
+    $('pair-screen').style.display = 'none';
+    $('chat-screen').style.display = 'flex';
+    addMsg('Halo! Aku Eling — dan aku ingat semua yang pernah kamu ceritain di Telegram juga. Coba tanya sesuatu yang cuma aku bisa tahu kalau aku beneran ingat. 😉', 'bot');
+  } catch (e) { $('pair-error').textContent = e.message; }
+  $('pair-btn').disabled = false;
+};
+async function send() {
+  const text = $('input').value.trim();
+  if (!text || !token) return;
+  $('input').value = '';
+  addMsg(text, 'user');
+  const t = addMsg('mengetik...', 'bot typing');
+  $('send-btn').disabled = true;
+  try {
+    const data = await api('/api/chat', { token, message: text });
+    t.classList.remove('typing'); t.textContent = data.reply;
+  } catch (e) { t.classList.remove('typing'); t.textContent = 'Ups, error: ' + e.message; }
+  $('send-btn').disabled = false;
+  $('messages').scrollTop = $('messages').scrollHeight;
+}
+$('send-btn').onclick = send;
+$('input').addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+$('mem-btn').onclick = async () => {
+  const panel = $('mem-panel');
+  if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
+  try {
+    const r = await fetch('/api/memories?token=' + encodeURIComponent(token));
+    const data = await r.json();
+    $('mem-list').innerHTML = '';
+    (data.memories.length ? data.memories : ['Belum ada ingatan.']).forEach(m => {
+      const li = document.createElement('li'); li.textContent = m; $('mem-list').appendChild(li);
+    });
+    panel.style.display = 'block';
+  } catch (e) { alert('Gagal memuat ingatan: ' + e.message); }
+};
+</script>
+</body>
+</html>
